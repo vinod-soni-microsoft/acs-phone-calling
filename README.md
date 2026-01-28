@@ -42,41 +42,69 @@ This project demonstrates how to make phone calls using Azure Communication Serv
 
 ## How to Make a Call
 
-### Step 1: Start the Webhook Server
+### Step 1: Create a Dev Tunnel
 
-In the first terminal, start the webhook server to receive call events:
+First, login to Dev Tunnel (Microsoft's tunneling service):
+
+```bash
+devtunnel user login
+```
+
+Create a tunnel that allows anonymous access:
+
+```bash
+devtunnel create --allow-anonymous
+```
+
+Add port 3000 with HTTP protocol:
+
+```bash
+devtunnel port create -p 3000 --protocol http
+```
+
+Start hosting the tunnel:
+
+```bash
+devtunnel host
+```
+
+You'll see output like:
+```
+Hosting port: 3000
+Connect via browser: https://abc123.use.devtunnels.ms:3000, https://abc123-3000.use.devtunnels.ms
+```
+
+**Copy the HTTPS URL** (e.g., `https://abc123-3000.use.devtunnels.ms`) and update your `.env` file:
+```env
+CALLBACK_URI=https://abc123-3000.use.devtunnels.ms/api/callbacks
+```
+
+### Step 2: Start the Webhook Server
+
+In a **second terminal**, start the webhook server to receive call events:
 
 ```bash
 npm run webhook
 ```
 
-This will:
-- Start a local Express server on port 3000
-- Automatically connect to ngrok to get a public URL
-- Display the public webhook URL you need to use
+This will start a local Express server on port 3000 that listens for Azure call events.
 
-You'll see output like:
-```
-🌍 Public URL: https://abc123.ngrok.io
-🔗 Callback URL: https://abc123.ngrok.io/api/callbacks
-```
+### Step 3: Make the Call
 
-**Copy the callback URL** and update your `.env` file:
-```env
-CALLBACK_URI=https://abc123.ngrok.io/api/callbacks
-```
-
-### Step 2: Make the Call
-
-In a **second terminal**, run:
+In a **third terminal**, run:
 
 ```bash
-npm run call
+node dist/index.js
+```
+
+Or use the npm script:
+```bash
+npm run dev
 ```
 
 This will read your configuration from `.env` and initiate the call using your callback URL.
 
-### Step 3: Monitor Events
+### Step 4: Monitor Events
 
 Watch the webhook server terminal for real-time call events:
 - ✅ `CallConnected` - Call was answered
@@ -86,9 +114,9 @@ Watch the webhook server terminal for real-time call events:
 
 ## Available Scripts
 
-- `npm run webhook` - Start the webhook server with ngrok
-- `npm run call` - Make a phone call (interactive)
-- `npm run dev` - Run the original simple example
+- `npm run webhook` - Start the webhook server on port 3000
+- `npm run call` - Make a phone call (interactive, prompts for callback URL)
+- `npm run dev` - Run the simple example (uses .env configuration)
 - `npm run build` - Compile TypeScript
 
 ## Webhook Events
@@ -111,12 +139,11 @@ The webhook server handles these Azure Communication Services events:
 - Never commit the `.env` file to git (it's in `.gitignore`)
 - Use `.env.example` as a template
 
-**Ngrok Authentication (Optional)**
-- Free ngrok works without auth but has limits
-- For more stability, sign up at https://ngrok.com and set:
-  ```bash
-  set NGROK_AUTH_TOKEN=your_token_here
-  ```
+**Dev Tunnel Setup**
+- Dev Tunnel is included with Visual Studio and VS Code
+- Login required: `devtunnel user login`
+- Tunnels expire after 30 days (create a new one when needed)
+- Alternative: Use ngrok with `ngrok http 3000` if you prefer
 
 **Phone Call Fails**
 - Verify your ACS resource has PSTN calling enabled
@@ -125,6 +152,8 @@ The webhook server handles these Azure Communication Services events:
 - Verify phone numbers are in E.164 format
 
 **Webhook Not Receiving Events**
-- Make sure the webhook server is running
-- Verify the ngrok tunnel is active
+- Make sure the webhook server is running (`npm run webhook`)
+- Verify the dev tunnel is active (`devtunnel host`)
+- Ensure the CALLBACK_URI in `.env` matches your dev tunnel URL
 - Check firewall settings
+- Confirm the tunnel allows anonymous access (`--allow-anonymous`)
